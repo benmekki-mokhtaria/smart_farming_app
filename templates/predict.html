@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <h2>🌱 Prédiction d’irrigation</h2>
+
+    <form method="post">
+        {% for col, label in col_labels.items() %}
+            <label>{{ label }}</label>
+            <input type="number" step="any" name="{{ col }}" required>
+        {% endfor %}
+
+        <button type="submit">Prédire</button>
+    </form>
+
+    {% if prediction is not none %}
+        <div class="result">
+            💧 Besoin d’irrigation estimé : <strong>{{ prediction }}</strong>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}
