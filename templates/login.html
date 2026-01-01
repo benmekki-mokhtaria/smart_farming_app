@@ -7,13 +7,19 @@
 <body class="bg-secondary d-flex align-items-center" style="height: 100vh;">
     <div class="container card shadow p-4 col-md-4 bg-white text-center">
         <h2 class="text-success mb-4">🌱 Accès Système Edge</h2>
+        
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}{% for c, m in messages %}<div class="alert alert-{{c}}">{{m}}</div>{% endfor %}{% endif %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
         {% endwith %}
-        <form method="POST">
+
+        <form method="POST" action="/login">
             <input type="text" name="username" class="form-control mb-3" placeholder="Utilisateur" required>
             <input type="password" name="password" class="form-control mb-3" placeholder="Mot de passe" required>
-            <button type="submit" class="btn btn-success w-100">Se connecter</button>
+            <button type="submit" class="btn btn-success w-100 fw-bold">Se connecter</button>
         </form>
     </div>
 </body>

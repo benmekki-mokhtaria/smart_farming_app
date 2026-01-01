@@ -4,91 +4,130 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <title>Smart Farming - Accueil</title>
+    <title>Smart Farming - Analyse</title>
+    <style>
+        .loader {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #198754;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
 <body class="bg-light">
     <nav class="navbar navbar-dark bg-dark mb-4 p-3 shadow">
-        <div class="container">
+        <div class="container d-flex justify-content-between">
             <a class="navbar-brand fw-bold" href="/">🌱 SMART AGRICULTURE</a>
             <div>
-                <a href="/historique" class="btn btn-outline-light btn-sm">Historique</a>
-                <a href="/parametres" class="btn btn-outline-info btn-sm">Gestion</a>
+                <a href="/historique" class="btn btn-outline-light btn-sm me-2">Historique</a>
+                <a href="/settings" class="btn btn-outline-secondary btn-sm text-white me-2">⚙️</a>
+                <a href="/logout" class="btn btn-danger btn-sm">
+                    <i class="bi bi-box-arrow-right"></i> Déconnexion
+                </a>
             </div>
         </div>
     </nav>
 
     <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}{% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm">{{ message }}</div>
-            {% endfor %}{% endif %}
-        {% endwith %}
-
         <div class="row">
-            <div class="col-md-5 mb-4">
+            <div class="col-md-5">
                 <div class="card shadow p-4 border-0">
-                    <h4 class="text-success mb-4"><i class="bi bi-gear-fill"></i> Données Capteurs</h4>
-                    <form method="POST">
-                        <label class="form-label">Taux d'Azote (N)</label>
-                        <input type="number" name="n" class="form-control mb-3" placeholder="Valeur N" required step="any">
-                        
-                        <label class="form-label">Taux de Phosphore (P)</label>
-                        <input type="number" name="p" class="form-control mb-3" placeholder="Valeur P" required step="any">
-                        
-                        <label class="form-label">Taux de Potassium (K)</label>
-                        <input type="number" name="k" class="form-control mb-3" placeholder="Valeur K" required step="any">
-                        
-                        <label class="form-label fw-bold text-primary">Température (°C)</label>
-                        <input type="number" name="temp" class="form-control mb-4 border-primary shadow-sm" placeholder="Température de l'air" required step="any">
-                        
-                        <button type="submit" class="btn btn-success w-100 fw-bold py-2 shadow">VALIDER L'ANALYSE IA</button>
+                    <h4 class="text-success mb-3"><i class="bi bi-moisture"></i> Données Capteurs</h4>
+                    <form method="POST" id="analysisForm">
+                        <label class="small text-muted">Type de culture</label>
+                        <select name="crop_type" class="form-select mb-3">
+                            <option value="Riz">Riz</option>
+                            <option value="Mais">Maïs</option>
+                            <option value="Ble">Blé</option>
+                        </select>
+
+                        <label class="small text-muted">Azote (N)</label>
+                        <input type="number" name="n" placeholder="Ex: 40" class="form-control mb-3" required step="0.1">
+
+                        <label class="small text-muted">Phosphore (P)</label>
+                        <input type="number" name="p" placeholder="Ex: 50" class="form-control mb-3" required step="0.1">
+
+                        <label class="small text-muted">Potassium (K)</label>
+                        <input type="number" name="k" placeholder="Ex: 35" class="form-control mb-3" required step="0.1">
+
+                        <label class="small text-muted">Température (°C)</label>
+                        <input type="number" name="temp" placeholder="Ex: 28" class="form-control mb-3" required step="0.1">
+
+                        <button type="submit" class="btn btn-success w-100 fw-bold" id="submitBtn">
+                            <span id="btnText">Lancer l'Analyse</span>
+                        </button>
                     </form>
                 </div>
             </div>
 
             <div class="col-md-7">
                 {% if prediction %}
-                <div class="card shadow p-4 border-start border-5 border-success mb-3">
-                    <h5 class="text-success d-flex justify-content-between">
-                        Rapport d'Expertise IA 
-                        <span class="badge bg-success">{{ "%.2f"|format(prediction) }}/5</span>
-                    </h5>
+                <div class="card shadow p-4 border-start border-5 border-success">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="text-success m-0"><i class="bi bi-clipboard-check"></i> Rapport d'Expertise IA</h4>
+                        <span class="badge bg-success fs-6">{{ "%.2f"|format(prediction) }}/5</span>
+                    </div>
+                    <p class="text-muted small">Culture analysée : <strong>{{ analyse.crop }}</strong></p>
                     <hr>
-                    <div class="row">
-                        <div class="col-sm-6">
-                            <p>💧 <strong>Irrigation :</strong><br> {{ analyse.irrigation }}</p>
-                            <p>🌿 <strong>Fertilisation :</strong><br> {{ analyse.fertilisation }}</p>
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <p class="mb-2">💧 <strong>Irrigation :</strong><br> <span class="badge bg-light text-dark border">{{ analyse.irrigation }}</span></p>
+                            <p class="mb-0">🌿 <strong>Fertilisation :</strong><br> <span class="badge bg-light text-dark border">{{ analyse.fertilisation }}</span></p>
                         </div>
-                        <div class="col-sm-6">
-                            <p>♻️ <strong>Gaspillage :</strong><br> {{ analyse.gaspillage }}</p>
-                            <p class="text-muted small"><em>Basé sur N: {{analyse.n}}, P: {{analyse.p}}, K: {{analyse.k}}</em></p>
+                        <div class="col-6 text-end">
+                            <p class="mb-2">♻️ <strong>Gaspillage :</strong><br> <span class="badge bg-light text-dark border">{{ analyse.gaspillage }}</span></p>
+                            <p class="small text-muted mt-2">N:{{analyse.n}}, P:{{analyse.p}}, K:{{analyse.k}}, T:{{analyse.temp}}°</p>
                         </div>
                     </div>
+                    
+                    <div style="height: 200px;">
+                        <canvas id="barChart"></canvas>
+                    </div>
                 </div>
-                <div class="card shadow p-3 border-0"><canvas id="barChart" height="150"></canvas></div>
+
                 <script>
                     new Chart(document.getElementById('barChart'), {
                         type: 'bar',
                         data: {
                             labels: ['Azote (N)', 'Phosphore (P)', 'Potassium (K)'],
-                            datasets: [{
-                                label: 'Concentration mg/kg',
-                                data: [{{analyse.n}}, {{analyse.p}}, {{analyse.k}}],
-                                backgroundColor: ['#2e7d32','#1976d2','#fbc02d']
+                            datasets: [{ 
+                                label: 'Concentration Nutriments', 
+                                data: [{{analyse.n}}, {{analyse.p}}, {{analyse.k}}], 
+                                backgroundColor: ['#198754', '#0d6efd', '#ffc107'],
+                                borderRadius: 5
                             }]
                         },
-                        options: { plugins: { legend: { display: false } } }
+                        options: {
+                            maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: true } }
+                        }
                     });
                 </script>
                 {% else %}
-                <div class="card shadow p-5 text-center bg-white border-0 h-100 d-flex flex-column justify-content-center">
-                    <i class="bi bi-database-fill-check fs-1 text-success opacity-25"></i>
-                    <h5 class="mt-3 text-muted">Système prêt pour l'analyse IA</h5>
-                    <p class="text-muted">Remplissez le formulaire pour générer les conseils.</p>
+                <div class="text-center mt-5 text-muted border p-5 bg-white shadow-sm rounded border-0">
+                    <i class="bi bi-cpu fs-1 text-success"></i>
+                    <h5 class="mt-3">Système Prêt</h5>
+                    <p>Veuillez entrer les données de vos capteurs pour générer une analyse prédictive.</p>
                 </div>
                 {% endif %}
             </div>
         </div>
     </div>
+
+    <script>
+        // Petit script pour animer le bouton lors du clic
+        document.getElementById('analysisForm').onsubmit = function() {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader"></span> Analyse en cours...';
+        };
+    </script>
 </body>
 </html>

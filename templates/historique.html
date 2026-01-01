@@ -4,62 +4,105 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <title>Dashboard & Historique</title>
+    <title>Dashboard Historique</title>
 </head>
 <body class="bg-light">
-    <nav class="navbar navbar-dark bg-dark mb-4 p-3 shadow"><div class="container"><a class="navbar-brand" href="/">🏠 Accueil</a></div></nav>
+    <nav class="navbar navbar-dark bg-dark mb-4 p-3 shadow">
+        <div class="container d-flex justify-content-between">
+            <a class="navbar-brand fw-bold" href="/">📊 TABLEAU DE BORD</a>
+            <div>
+                <a href="/" class="btn btn-outline-light btn-sm me-2">Nouvelle Analyse</a>
+                <a href="/settings" class="btn btn-outline-secondary btn-sm text-white me-2">⚙️</a>
+                <a href="/logout" class="btn btn-danger btn-sm">
+                    <i class="bi bi-box-arrow-right"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </nav>
 
     <div class="container">
-        <div class="row mb-4 text-center">
-            <div class="col-md-4"><div class="card bg-primary text-white p-3 shadow-sm border-0"><h6>Analyses Totales</h6><h2 class="fw-bold">{{ data|length }}</h2></div></div>
-            <div class="col-md-4"><div class="card bg-success text-white p-3 shadow-sm border-0"><h6>Efficacité Moyenne</h6><h2 class="fw-bold">{{ "%.2f"|format(data|sum(attribute='result') / data|length if data|length > 0 else 0) }}</h2></div></div>
-            <div class="col-md-4"><div class="card bg-info text-white p-3 shadow-sm border-0"><h6>Dernière Température</h6><h2 class="fw-bold">{{ data[0].temperature if data|length > 0 else 0 }}°C</h2></div></div>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card bg-primary text-white p-3 shadow-sm border-0">
+                    <h5>Total Analyses</h5>
+                    <h2 class="fw-bold">{{ total }}</h2>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-success text-white p-3 shadow-sm border-0">
+                    <h5>Efficacité Moyenne</h5>
+                    <h2 class="fw-bold">{{ avg_score }}/5</h2>
+                </div>
+            </div>
         </div>
 
-        <div class="row mb-4">
-            <div class="col-md-8"><div class="card shadow p-3 border-0 h-100"><h6>📈 Tendance IA vs Température</h6><canvas id="lineChart"></canvas></div></div>
-            <div class="col-md-4"><div class="card shadow p-3 border-0 h-100 text-center"><h6>⚖️ Équilibre N-P-K (Moyenne)</h6><canvas id="radarChart"></canvas></div></div>
+        <div class="card shadow p-4 border-0 mb-4">
+            <h5 class="text-success mb-3"><i class="bi bi-graph-up-arrow"></i> Évolution des Scores IA</h5>
+            <canvas id="lineChart" height="100"></canvas>
         </div>
 
         <div class="card shadow p-4 border-0">
-            <div class="d-flex justify-content-between mb-3 align-items-center">
-                <h4>Historique des Données</h4>
-                <a href="/export" class="btn btn-success btn-sm"><i class="bi bi-file-earmark-arrow-down"></i> Télécharger CSV</a>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="text-secondary m-0"><i class="bi bi-table"></i> Registre des Analyses</h5>
+                <a href="/export/csv" class="btn btn-success btn-sm">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> Exporter en CSV
+                </a>
             </div>
-            <table class="table table-striped table-hover">
-                <thead class="table-dark"><tr><th>#</th><th>N</th><th>P</th><th>K</th><th>Temp (°C)</th><th>Score IA</th><th>Date</th></tr></thead>
-                <tbody>
-                    {% for row in data %}
-                    <tr>
-                        <td>{{row.id}}</td><td>{{row.n_val}}</td><td>{{row.p_val}}</td><td>{{row.k_val}}</td><td>{{row.temperature}}</td>
-                        <td class="fw-bold text-success">{{ "%.2f"|format(row.result) }}</td>
-                        <td class="small">{{row.date_creation}}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Culture</th>
+                            <th>N</th>
+                            <th>P</th>
+                            <th>K</th>
+                            <th>Score IA</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data %}
+                        <tr>
+                            <td><span class="badge bg-info text-dark">{{ row.crop_type }}</span></td>
+                            <td>{{ row.n_val }}</td>
+                            <td>{{ row.p_val }}</td>
+                            <td>{{ row.k_val }}</td>
+                            <td class="fw-bold text-success">{{ "%.2f"|format(row.result) }}</td>
+                            <td class="small text-muted">{{ row.date_creation }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">Aucune donnée disponible.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <script>
-        const ids = [{% for row in data|reverse %}"#{{row.id}}",{% endfor %}];
-        const scores = [{% for row in data|reverse %}{{row.result}},{% endfor %}];
-        const temps = [{% for row in data|reverse %}{{row.temperature}},{% endfor %}];
-        const avgN = {{ data|sum(attribute='n_val') / data|length if data|length > 0 else 0 }};
-        const avgP = {{ data|sum(attribute='p_val') / data|length if data|length > 0 else 0 }};
-        const avgK = {{ data|sum(attribute='k_val') / data|length if data|length > 0 else 0 }};
-
-        new Chart(document.getElementById('lineChart'), {
+        const ctx = document.getElementById('lineChart');
+        new Chart(ctx, {
             type: 'line',
-            data: { labels: ids, datasets: [
-                { label: 'Efficacité IA', data: scores, borderColor: '#2e7d32', tension: 0.4, fill: true, backgroundColor: 'rgba(46, 125, 50, 0.1)' },
-                { label: 'Température', data: temps, borderColor: '#d32f2f', borderDash: [5,5] }
-            ]}
-        });
-
-        new Chart(document.getElementById('radarChart'), {
-            type: 'radar',
-            data: { labels: ['N', 'P', 'K'], datasets: [{ label: 'Profil Moyen', data: [avgN, avgP, avgK], backgroundColor: 'rgba(25, 118, 210, 0.2)', borderColor: '#1976d2' }]}
+            data: {
+                labels: [{% for row in data|reverse %}"#{{row.id}}",{% endfor %}],
+                datasets: [{ 
+                    label: 'Score IA (Qualité du Sol)', 
+                    data: [{% for row in data|reverse %}{{row.result}},{% endfor %}], 
+                    borderColor: '#198754', 
+                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                    fill: true,
+                    tension: 0.3 
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, max: 5 }
+                }
+            }
         });
     </script>
 </body>

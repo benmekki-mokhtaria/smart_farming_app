@@ -2,6 +2,7 @@ import pandas as pd
 import pickle
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import LabelEncoder # Pour transformer le texte en chiffres
 
 # -----------------------------
 # Charger le dataset nettoyé
@@ -9,9 +10,17 @@ from sklearn.ensemble import RandomForestRegressor
 df = pd.read_csv("dataset_irrigation_clean.csv")
 
 # -----------------------------
-# Sélection paramètres essentiels
+# Encodage du 5ème paramètre (Type de culture)
 # -----------------------------
-features = ["N", "P", "K", "temperature"]
+# On transforme 'Riz', 'Café', etc., en 0, 1, 2...
+le_crop = LabelEncoder()
+df['crop_type_encoded'] = le_crop.fit_transform(df['crop_type'])
+
+# -----------------------------
+# Sélection des 5 paramètres essentiels
+# -----------------------------
+# Ajout de 'crop_type_encoded' comme 5ème paramètre
+features = ["N", "P", "K", "temperature", "crop_type_encoded"]
 target = "water_usage_efficiency"
 
 X = df[features]
@@ -35,9 +44,10 @@ model = RandomForestRegressor(
 model.fit(X_train, y_train)
 
 # -----------------------------
-# Sauvegarde du modèle
+# Sauvegarde du modèle et de l'encodeur
 # -----------------------------
+# On sauvegarde aussi l'encodeur pour pouvoir réutiliser le modèle plus tard
 with open("water_model.pkl", "wb") as f:
-    pickle.dump(model, f)
+    pickle.dump({'model': model, 'encoder': le_crop}, f)
 
-print("✅ Modèle entraîné et sauvegardé avec succès : water_model.pkl")
+print("✅ Modèle avec 5 paramètres entraîné et sauvegardé : water_model.pkl")
